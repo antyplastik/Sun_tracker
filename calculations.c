@@ -444,22 +444,22 @@ void CalcTest()
 
 	// Data
 	Set_Date(2017, 6, 1);
-	CalcTriggTableIn(0,ON);
+//	CalcTriggTableIn(0,ON);
 
 	// Czas
 	if (g_TrackerTEST == ON)
 		Set_Time(0,0,1);
 	else
 		Set_Time(12,10,05); // sprawdzic dzialanie
-	CalcTriggTableIn(1,ON);
+//	CalcTriggTableIn(1,ON);
 
 	// Pozycja
 	Set_Possition(52.259, 'N', 21.020, 'E');
-	CalcTriggTableIn(2,ON);
+	//CalcTriggTableIn(2,ON);
 
 	// Kierunek
 	Set_Direction_Angle(10);
-	CalcTriggTableIn(3,ON);
+//	CalcTriggTableIn(3,ON);
 
 	//CalcTriggTableCheck();
 
@@ -476,7 +476,7 @@ void TrackerTest(uint32_t arg)
 
 	USART_Tx("\nTest trackera\n\r");
 
-	//g_TrackerTEST = ON; // wlaczenie funkcji testowej trackera
+	g_TrackerTEST = ON; // wlaczenie funkcji testowej trackera
 
 	if (arg == 0 || arg == 1)
 	{
@@ -494,12 +494,12 @@ void TrackerTest(uint32_t arg)
 void TrackerTestScheduler()
 {
 	/*
-	 * Funkcja wywolywana co 1s. Jedno wywolanie jest rowne zmianie pozycji odczytywanej tablicy.
+	 * Funkcja wywolywana co 1s. Jedno wywolanie jest rowne zmianie pozycji odczytywanej tablicy. Funkcja laduje do zmiennej g_Test_time_simul wartosc z tablicy obliczonych stepli czasowych
 	 */
 
 	//g_tracker_test_step_count = g_Tracker_Step_Count;
 
-	if (g_tracker_test_step_count <= g_Tracker_Step_Value && g_TrackerTimeStepsTable [g_tracker_test_step_count] != 0)
+	if (g_tracker_test_step_count <= g_Tracker_Step_Value && g_TrackerTimeStepsTable [g_tracker_test_step_count] != 0) // OK!
 		g_Test_time_simul = g_TrackerTimeStepsTable [g_tracker_test_step_count];
 /*
 	if (g_tracker_test_measure_count <= g_Measure_Step_Value) // <= dopisac wyrzucanie rekordu tabeli przez USART
@@ -589,7 +589,7 @@ void CalcTriggTableIn(uint32_t i, int32_t in)
 }
 
 
-void CalcTriggTableCheck()
+void CalcTriggTableCheck() //OK
 {
 	/* Funkcja sprawdza zawartosc tablicy g_CalcTriggTable. Ta tablica zawiera informacje odnosnie modyfikowanych parametrow. Po wykonaniu potrzebnych obliczen nastepuje zerowanie.
 	 *
@@ -633,6 +633,8 @@ void CalcTriggTableCheck()
 			USART_Tx("\nPozycjonowanie z uwzglednieniem parametru dir\n\r");;
 
 		Calculations();
+
+		CleanStepsTables();
 		CalcSteps();
 
 		g_CalcRDY = ON; // flaga wlaczajaca automat
@@ -900,7 +902,7 @@ void MeasureIntervalTableClean()
 }
 
 
-void TrackerStep() //
+void TrackerStep() // OK
 {
 	// Funkcja okresla ilosc krokow trackera w ciagu dnia
 	// Funkcja uwzgledniajaca liczbe godzin slonecznych poszczegolnych dni w ciagu roku
@@ -930,30 +932,45 @@ void TrackerStep() //
 	g_tracker_start_time = time_middle - sunny_hours_in_a_day;
 	g_tracker_stop_time = time_middle + sunny_hours_in_a_day;
 
+	//Obliczanie czasu pracy aktywnej
 	g_tracker_start_time = (int)round(g_tracker_start_time);
 	g_tracker_stop_time = (int)round(g_tracker_stop_time);
 
 
-	while (tracker_step_stop == ON) //
+	while (tracker_step_stop == ON)
 	{
-		if (g_Tracker_Step_Value == 0)
+		if (g_Tracker_Step_Value == 0) // warunek poczatkowy
 		{
 			g_TrackerTimeStepsTable [g_Tracker_Step_Value] = g_tracker_start_time;
 			g_Tracker_Step_Value = 1;
 		}
 
-		if (g_TrackerTimeStepsTable [g_Tracker_Step_Value] < g_tracker_stop_time && g_Tracker_Step_Value > 0)
+		if (g_Tracker_Step_Value > 0 && (g_TrackerTimeStepsTable [g_Tracker_Step_Value] < g_tracker_stop_time)) // nie jest spelniony drugi warunek
 		{
 			g_TrackerTimeStepsTable [g_Tracker_Step_Value] = g_TrackerTimeStepsTable [g_Tracker_Step_Value-1] + TRACKER_STEP_INTERVAL;
 			last_step = g_TrackerTimeStepsTable [g_Tracker_Step_Value] + TRACKER_STEP_INTERVAL;
 			g_Tracker_Step_Value++;
 		}
 
-		if (last_step >= g_tracker_stop_time || g_Tracker_Step_Value == TRACKER_MAX_TIME_STEPS-1)
+		if ( last_step >= g_tracker_stop_time && (g_Tracker_Step_Value <= TRACKER_MAX_TIME_STEPS) ) // warunek koncowy
 		{
 			g_TrackerTimeStepsTable [g_Tracker_Step_Value] = g_tracker_stop_time;
+
+			if ( (last_step > g_tracker_stop_time) && ((last_step - g_tracker_stop_time) > TRACKER_STEP_INTERVAL) ) // warunek tak naprawde opcjonalny
+			{
+				g_Tracker_Step_Value++;
+				g_TrackerTimeStepsTable [g_Tracker_Step_Value] = last_step;
+			}
+
 			tracker_step_stop = OFF;
 		}
+
+		if  (g_Tracker_Step_Value > TRACKER_MAX_TIME_STEPS) // na wypadek bledu
+		{
+			TrackerError();
+			tracker_step_stop = OFF;
+		}
+
 	}
 }
 
@@ -984,30 +1001,34 @@ void TrackerStepCount() //
 	//time = g_Time_s;
 
 
-	if (time == g_TrackerTimeStepsTable [tracker_step_count] && tracker_step_count <= g_Tracker_Step_Value)
+	if (time == g_TrackerTimeStepsTable [tracker_step_count])// || tracker_step_count <= g_Tracker_Step_Value)
 	{
 		//Calculations();
 		SunPosition(); // obliczenia pozycji Slonca
 
-		if (Sun_H_previous_value != g_Sun_H && Sun_V_previous_value != g_Sun_V) // <= ZLY ARGUMENT; WCHODZI NA OSTATNIEJ POZYCJI W TABLICY!!!!!!
-			MoveServos(); // wywoluje funkcje przestawiajaca serwa
-		else if (Sun_H_previous_value > g_Sun_H)
+		if (Sun_H_previous_value != g_Sun_H && Sun_V_previous_value != g_Sun_V)
+			MoveServos();
+		else if (Sun_H_previous_value > g_Sun_H) // niekoniecznie potrzebne
 			TrackerError();
 
+		tracker_step_count++;
 
-		if (g_TrackerTEST == ON)
-			g_tracker_test_step_count++;
+		if (g_TrackerTEST == ON)// <============================== ta wartosc nie ulega zmianie
+			g_tracker_test_step_count = tracker_step_count;
 		else
-			g_Tracker_Step_Count++;
+			g_Tracker_Step_Count = tracker_step_count;
 	}
 
-	if (tracker_step_count == TRACKER_MAX_TIME_STEPS+1 || tracker_step_count == g_Tracker_Step_Value)
+	if ((tracker_step_count == TRACKER_MAX_TIME_STEPS) || (tracker_step_count == g_Tracker_Step_Value))
 	{
 		if (g_TrackerTEST == ON)
 			g_tracker_test_step_count = 0;
 		else
 			g_Tracker_Step_Count = 0;
 	}
+
+	if (tracker_step_count > g_Tracker_Step_Value)
+		TrackerError();
 // Teoretycznie mozna stworzyc warunek by tracker po zakonczeniu pracy wracal do pewnej wartosci poczatkowej (np. obliczonej na nastepny dzien)
 
 }
@@ -1016,6 +1037,8 @@ void TrackerStepCount() //
 void TrackerCountTableClean()
 {
 	uint32_t i;
+
+	g_Tracker_Step_Value = 0;
 
 	for (i = 0; i <= TRACKER_MAX_TIME_STEPS; i++) // zerowanie tablicy krokow H trackera
 		g_TrackerTimeStepsTable [i] = 0;
