@@ -62,20 +62,26 @@ void CalcTriggTableClean();
 
 void SetCalcTime(uint32_t hour, uint32_t minute, uint32_t second);
 void SetCalcCalendar(uint32_t Year, uint32_t month, uint32_t day);
-void CalcCalendar(uint32_t Year, uint32_t month, uint32_t day);
+
 void TimeZone();
 void TimeZoneSwitch();
-void CalcSteps(); // Funkcja wywoluje obliczenia krokow pomiarow i trackera
+
+void CalcCalendar(uint32_t Year, uint32_t month, uint32_t day);
 void CalcNewDay(); // funkcja obliczen dla nowego dnia
+
+void CalcSteps(); // Funkcja wywoluje obliczenia krokow pomiarow i trackera
 
 void MeasureInterval();
 void MeasureCount(); // godziny pomiarow sa zdefiniowane na sztywno wiec nie
 void MeasureIntervalTableClean();
+
 void TrackerStep(); // oblicza kroki jakie ma wykonac tracker w ciagu dnia
 void TrackerStepCount(); // pilnuje by tracker wykonal krok o wskazanej godzinie
 void TrackerCountTableClean();
+
 void CleanStepsTables();
 
+//------------------------------------ BLOK OBLICZEN --------------------------------------------
 void DayOfYear(int32_t year, int32_t month, int32_t day);
 void ExuationOfTime();
 void SunDeclination();
@@ -83,5 +89,6 @@ void SunDeclination();
 //void SunriseSunset_2();
 void SunriseSunset_3();
 void SunPosition();
+//-----------------------------------------------------------------------------------------------
 
 #endif /* OBLICZENIA_H_ */

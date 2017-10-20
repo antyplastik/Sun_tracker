@@ -32,6 +32,7 @@ uint32_t g_TrackerTEST = 0; // flaga testu trackera <= przyspiesza czas
 uint32_t g_CalcLeapYear = 0; // flaga ma wartosc 1 jezeli rok jest przestepny
 uint32_t g_CalcCalSumerTime = 1; // domyslnie flaga dla czasu letniego
 uint32_t g_CalcMeasSTP = 0;
+extern int g_ADCTest;
 
 // zmienna laczaca wartosc z oznaczeniem kierunku (N i S, E i W)
 float g_latitude = 52.259;	// szerokosc geo N lub S
@@ -147,6 +148,9 @@ void CalculationsInput()
 		ChangeStateLED();
 
 		g_CalcRDY = ON;
+
+		if (g_ADCTest == ON)
+			ADC_Test();
 
 		if (g_TrackerTEST == ON)
 		{
@@ -308,7 +312,7 @@ void ADC1ToMeasureTable()
 		g_ADC1MeasureTable [g_measure_count] [2] = time;
 
 		for (i=1; i <= ADC1_DMA_CHANNELS; i++)
-			g_ADC1MeasureTable [g_day_of_year][i+2] = g_ADC_PV_value_conv [i-1]; // przesuniecie pomiedzy poszczegolnymi kolumnami tablic
+			g_ADC1MeasureTable [g_measure_count][i+2] = g_ADC_PV_value_conv [i-1]; // przesuniecie pomiedzy poszczegolnymi kolumnami tablic
 
 		g_ADC1MeasureTable [g_measure_count] [7] = g_Sun_H;
 		g_ADC1MeasureTable [g_measure_count] [8] = g_Sun_V;
@@ -531,19 +535,18 @@ void Calculations()
 	 * Obliczenia wykonywane cyklicznie
 	 */
 
-	//CalculationsInput();
+	int year = g_Calc_Year;
+	int month = g_Calc_month;
+	int day = g_Calc_day;
 
-	//g_latitude;
-	//g_longitude;
-
-	DayOfYear(g_Calc_Year,g_Calc_month,g_Calc_day); // dziala	raz dziennie
+	DayOfYear(year, month, day); // dziala	raz dziennie
 	ExuationOfTime(); // dziala			raz dziennie
 	TimeZone();
 	SunDeclination(); // dziala			raz dziennie
 	SunriseSunset_3(); // dziala		raz dziennie
 	SunPosition(); //	dziala			co krotki interwal czasowy zalezny od SunriseSunset_3
 
-	CalcTriggTableClean();
+	//CalcTriggTableClean();
 
 }
 
@@ -632,17 +635,17 @@ void CalcTriggTableCheck() //OK
 		if (dir == ON)
 			USART_Tx("\nPozycjonowanie z uwzglednieniem parametru dir\n\r");;
 
+		CalcTriggTableClean();
+
 		Calculations();
 
 		CleanStepsTables();
 		CalcSteps();
 
-		g_CalcRDY = ON; // flaga wlaczajaca automat
-
 		USART_Tx("\nUstawiono wszystkie wymagane parametry.\n\r");
 		USART_Tx("Wlaczono symulacje sledzenia Slonca.\n\r");
 
-		CalcTriggTableClean();
+		g_CalcRDY = ON; // flaga wlaczajaca automat
 	}
 
 }
@@ -660,7 +663,8 @@ void CalcTriggTableClean()
 
 void SetCalcTime(uint32_t hour, uint32_t minute, uint32_t second)
 {
-	CalcTriggTableIn(1, CHANGE);
+	//CalcTriggTableIn(1, CHANGE);
+
 	g_Time_s = hour*3600 + minute*60 + second;
 
 }
@@ -668,7 +672,7 @@ void SetCalcTime(uint32_t hour, uint32_t minute, uint32_t second)
 
 void SetCalcCalendar(uint32_t Year, uint32_t month, uint32_t day)
 {
-	CalcTriggTableIn(0, CHANGE);
+	//CalcTriggTableIn(0, CHANGE);
 
 	g_Calc_Year = Year;
 	g_Calc_month = month;
@@ -710,13 +714,13 @@ void CalcCalendar(uint32_t Year, uint32_t month, uint32_t day)
 	}
 
 // Zerowanie dni roku po osiagnieciu kolejnego dnia po ostatnim dniu roku
-	if (g_day_of_year == 366 && g_CalcLeapYear == OFF)
+	if (g_day_of_year == 365 && g_CalcLeapYear == OFF)
 	{
 		g_Calc_day = g_Calc_month = g_day_of_year = 1;
 		g_Calc_Year++;
 	}
 
-	else if (g_day_of_year == 367 && g_CalcLeapYear == ON)
+	else if (g_day_of_year == 366 && g_CalcLeapYear == ON)
 	{
 		g_Calc_day = g_Calc_month = g_day_of_year = 1;
 		g_Calc_Year++;
@@ -1003,7 +1007,6 @@ void TrackerStepCount() //
 
 	if (time == g_TrackerTimeStepsTable [tracker_step_count])// || tracker_step_count <= g_Tracker_Step_Value)
 	{
-		//Calculations();
 		SunPosition(); // obliczenia pozycji Slonca
 
 		if (Sun_H_previous_value != g_Sun_H && Sun_V_previous_value != g_Sun_V)
@@ -1036,20 +1039,23 @@ void TrackerStepCount() //
 
 void TrackerCountTableClean()
 {
-	uint32_t i;
+	uint32_t i, year;
+
+	g_day_of_year;
+	//g_Calc_Year;
+
+	year = g_Calc_Year;
 
 	g_Tracker_Step_Value = 0;
 
 	for (i = 0; i <= TRACKER_MAX_TIME_STEPS; i++) // zerowanie tablicy krokow H trackera
+	{
+		if (i == 100 || i == 150 || i == 200 || i == 250 || i == 300)
+			year = g_Calc_Year;
 		g_TrackerTimeStepsTable [i] = 0;
+	}
 
-	/*
-		for (i = 0; i <= TRACKER_MAX_STEPS_H; i++) // zerowanie tablicy krokow H trackera
-			g_TrackerTimeStepsTableH [i] = 0;
-
-		for (i = 0; i <= TRACKER_MAX_STEPS_V; i++) // zerowanie tablicy krokow H trackera
-			g_TrackerTimeStepsTableV [i] = 0;
-	*/
+	g_Calc_Year = year;
 }
 
 
@@ -1075,6 +1081,8 @@ void DayOfYear(int32_t year, int32_t month, int32_t day) // <= dziala poprawnie
 
 	int32_t DIM [12] = {31,doF,31,30,31,30,31,31,30,31,30,31};
 
+	int day_of_year = 0;
+
 	//g_CalcLeapYear = 0; // zerowanie flagi w razie gdy wczesniej byl rok przestepny
 
 	//g_day_of_year = 0;
@@ -1087,30 +1095,31 @@ void DayOfYear(int32_t year, int32_t month, int32_t day) // <= dziala poprawnie
 		set++;
 
 
-	if (set < 1 || set > 2) // w przypadku gdy rok nie spelnia warunkow roku przystepnego
-	{
-		DIM [1] = doF = 28;
-		g_CalcLeapYear = OFF;
-	}
-
-	else if (set >= 1 && set <= 2) // ile luty ma miec dni
+	if (set >= 1) // ile luty ma miec dni
 	{
 		DIM [1] = doF = 29;
 		g_CalcLeapYear = ON;
 	}
 
+	else
+	{
+		DIM [1] = doF = 28;
+		g_CalcLeapYear = OFF;
+	}
 
 	if (month == 1)
-		g_day_of_year = day;
+		day_of_year = day;
 
 	else  if (month >= 2 && month <= 12)
 		for (i=0; i <= month-2; i++)
 		{
-			g_day_of_year = g_day_of_year + DIM[i];
+			day_of_year = day_of_year + DIM[i];
 
 			if (i == month - 2)
-				g_day_of_year = g_day_of_year + day;
+				day_of_year = day_of_year + day;
 		}
+
+	g_day_of_year = day_of_year;
 
 	//return g_day_of_year;
 }
