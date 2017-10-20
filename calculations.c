@@ -39,7 +39,7 @@ float g_longitude = 21.020;	// dlugosc geo E lub W
 float g_dir_ang = 0; // 0st to N
 
 // !!!!!!!!! ZAMIENIC ZMIENNE GLOBALNE CZASU I DATY NA POZYCJE BITOWE W 8-bit TABLICY !!!!!!!!!
-uint32_t g_Calc_Year;
+uint32_t g_Calc_Year; // <============================ gdzies zeruje sie  rok i przez to oblicza glupoty!!!!!!!!!!!!!!!!!!!!!
 uint32_t g_Calc_month;
 uint32_t g_Calc_day;
 uint32_t g_Calc_hour;
@@ -1011,12 +1011,12 @@ void TrackerStepCount() //
 		else if (Sun_H_previous_value > g_Sun_H) // niekoniecznie potrzebne
 			TrackerError();
 
-		tracker_step_count++;
+		//tracker_step_count++;
 
-		if (g_TrackerTEST == ON)// <============================== ta wartosc nie ulega zmianie
-			g_tracker_test_step_count = tracker_step_count;
+		if (g_TrackerTEST == ON)
+			g_tracker_test_step_count++; // = tracker_step_count;
 		else
-			g_Tracker_Step_Count = tracker_step_count;
+			g_Tracker_Step_Count++; // = tracker_step_count;
 	}
 
 	if ((tracker_step_count == TRACKER_MAX_TIME_STEPS) || (tracker_step_count == g_Tracker_Step_Value))
