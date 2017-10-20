@@ -58,7 +58,6 @@
 
 /* Private function prototypes */
 
-
 /* Private functions */
 
 /* Global variables */
