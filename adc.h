@@ -51,6 +51,7 @@ void ADC1_Config();
 void ADC1_GPIO_Init();
 void Cyclic_Measure_TIM(uint32_t adc1timperiod, uint32_t adc1timprescaler);
 void ADC_Get_Values();
+void ADC_Test();
 void ADC_PV_Measure();
 void ADC1_to_USART();
 void Delay(uint32_t nTime);

@@ -490,15 +490,15 @@ void TrackerTest(uint32_t arg)
 		CalcTriggTableCheck();
 		g_TrackerTEST = ON; // wlaczenie funkcji testowej trackera
 	}
-
-	//USART_Tx("\nCzas biegnie szybciej\n\r");
 }
 
 
 void TrackerTestScheduler()
 {
 	/*
-	 * Funkcja wywolywana co 1s. Jedno wywolanie jest rowne zmianie pozycji odczytywanej tablicy. Funkcja laduje do zmiennej g_Test_time_simul wartosc z tablicy obliczonych stepli czasowych
+	 * Funkcja wywolywana co 1s. Jedno wywolanie jest rowne zmianie pozycji odczytywanej tablicy.
+	 * Funkcja laduje do zmiennej g_Test_time_simul wartosc z tablicy obliczonych stepli czasowych.
+	 * Funkcja symuluje tylko czas dla danego dnia.
 	 */
 
 	//g_tracker_test_step_count = g_Tracker_Step_Count;
@@ -916,7 +916,6 @@ void TrackerStep() // OK
 	uint32_t last_step;
 	uint32_t tracker_step_stop = ON; // zmienna potrzebna do petli while
 
-	//float g_tracker_start_time, g_tracker_stop_time;
 	float sunny_hours_in_a_day;
 
 	float time_middle = 43200 + g_delta_time; // trzeba zaokraglicz funkcja round()
@@ -974,8 +973,77 @@ void TrackerStep() // OK
 			TrackerError();
 			tracker_step_stop = OFF;
 		}
-
 	}
+
+	if (g_TrackerTEST == OFF) // trzeba obliczyc ktory krok trackera jest wg czasu
+		TrackerStepCountValue();
+}
+
+
+void TrackerStepCountValue() // Teoretycznie ok
+{
+	/*
+	 * Funkcja znajdujaca na podstawie czasu, ktory jest aktualnie krok trackera.
+	 * Trzeba uwzglednic czas ktory nie miesci sie w pracy aktywnej trackera. Wtedy wartosc kroku powinna byc wyzerowana i zmieniac sie podczas normalnej pracy.
+	 *
+	 */
+
+	int time = g_Time_s;
+	int tracker_step_count = g_Tracker_Step_Count;
+	int step_found = ON; // gdy krok znaleziony to 0 zamiast 1
+	int i = 0;
+
+	while (step_found == ON)
+	{
+		if (time < g_TrackerTimeStepsTable [i])
+		{
+			if ((time - g_TrackerTimeStepsTable [i]) < TRACKER_STEP_INTERVAL)
+			{
+				tracker_step_count = i--;
+				step_found = OFF;
+			}
+
+			else
+			{
+				tracker_step_count = i;
+				step_found = OFF;
+			}
+		}
+
+
+		else if (time > g_TrackerTimeStepsTable [i])
+		{
+			if ((time - g_TrackerTimeStepsTable [i]) < TRACKER_STEP_INTERVAL)
+			{
+				tracker_step_count = i;
+				step_found = OFF;
+			}
+			else
+			{
+				tracker_step_count = i++;
+				step_found = OFF;
+			}
+		}
+
+
+		else if (time > g_TrackerTimeStepsTable [i])
+		{
+			tracker_step_count = i;
+			step_found = OFF;
+		}
+
+
+		if (i == g_Tracker_Step_Value || i == TRACKER_MAX_TIME_STEPS) // gdy nie znaleziono kroku w tablicy nastepuje zerowanie kroku trackera
+			{
+				tracker_step_count = 0;
+				step_found = OFF;
+			}
+
+		i++;
+	}
+
+	g_Tracker_Step_Count = tracker_step_count;
+
 }
 
 
@@ -1039,21 +1107,16 @@ void TrackerStepCount() //
 
 void TrackerCountTableClean()
 {
-	uint32_t i, year;
+	// Ktoras funkcja mazala poza tablicas i w tej funkcji zmienna g_Calc_Year sie zerowala
 
-	g_day_of_year;
-	//g_Calc_Year;
+	uint32_t i, year;
 
 	year = g_Calc_Year;
 
 	g_Tracker_Step_Value = 0;
 
 	for (i = 0; i <= TRACKER_MAX_TIME_STEPS; i++) // zerowanie tablicy krokow H trackera
-	{
-		if (i == 100 || i == 150 || i == 200 || i == 250 || i == 300)
-			year = g_Calc_Year;
 		g_TrackerTimeStepsTable [i] = 0;
-	}
 
 	g_Calc_Year = year;
 }

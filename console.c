@@ -317,45 +317,45 @@ void Parse ()
 	}
 
 // Zadania
-	if (!strncmp(p, "get measure \n\r" , 10))
+	if (!strncmp(p, "get measure" , 10))
 		MeasureToUSART();
 
 
-	else if (!strncmp(p, "get time \n\r" , 7));
+	else if (!strncmp(p, "get time" , 7));
 
 
-	else if (!strncmp(p, "get pos \n\r" , 6));
+	else if (!strncmp(p, "get pos" , 6));
 
 // Test obliczen
-	if (!strncmp(p, "calc test \n\r" , 8))
+	if (!strncmp(p, "calc test" , 8))
 		CalcTest();
 
 
 // Test elementu wykonawczego trackera
-	if (!strncmp(p, "tracker test demo \n\r" , 16))
+	if (!strncmp(p, "tracker demo" , 11))
 	{
 		TrackerTest(0);
 	}
 
-	if (!strncmp(p, "tracker test on \n\r" , 14))
+	if (!strncmp(p, "tracker test on" , 14))
 	{
 		TrackerTest(1);
 
 	}
 
-	if (!strncmp(p, "tracker test off \n\r" , 15))
+	if (!strncmp(p, "tracker test off" , 15))
 	{
 		//SysTick_Div_Config (SYSTICK_STD_DIV);
 		g_TrackerTEST = OFF;
 
 	}
 
-	if (!strncmp(p, "adc test\n\r" , 7))
+	if (!strncmp(p, "adc test" , 7))
 		g_ADCTest = ON;
 
 
 // Help
-	if ((!strncmp(p, "help \n\r" , 4)) || (!strncmp(p, "-h \n\r" , 2)))
+	if ((!strncmp(p, "help" , 4)) || (!strncmp(p, "-h" , 2)))
 		{
 			USART_Tx("\n------------------------------------------Pomoc--------------------------------------------\n\r");
 			USART_Tx("Sun Tracker v1.0\n\r");

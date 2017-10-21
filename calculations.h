@@ -76,6 +76,7 @@ void MeasureCount(); // godziny pomiarow sa zdefiniowane na sztywno wiec nie
 void MeasureIntervalTableClean();
 
 void TrackerStep(); // oblicza kroki jakie ma wykonac tracker w ciagu dnia
+void TrackerStepCountValue(); // oblicza aktualny krok trackera na podstawie podanego czasu
 void TrackerStepCount(); // pilnuje by tracker wykonal krok o wskazanej godzinie
 void TrackerCountTableClean();
 
