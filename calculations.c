@@ -26,12 +26,13 @@
 // !!!!!!!!! ZAMIENIC ZMIENNE GLOBALNE FLAG NA POZYCJE BITOWE W 8-bit TABLICY !!!!!!!!!
 uint32_t g_CalcTRIGG = 0; // flaga wyzwalajaca obliczenia <= ma 3 stany! ON, OFF i Change (wymuszone z powodu zmiany parametrow podanych przez konsole)
 
-uint32_t g_CalcRDY; // flaga wystawiona jezeli zostaly wprowadzone parametry do obliczen ()
+uint32_t g_CalcRDY = 0; // flaga wystawiona jezeli zostaly wprowadzone parametry do obliczen ()
 uint32_t g_CalcERR = 0;
 uint32_t g_TrackerTEST = 0; // flaga testu trackera <= przyspiesza czas
 uint32_t g_CalcLeapYear = 0; // flaga ma wartosc 1 jezeli rok jest przestepny
 uint32_t g_CalcCalSumerTime = 1; // domyslnie flaga dla czasu letniego
-uint32_t g_CalcMeasSTP = 0;
+//uint32_t g_CalcMeasSTP = 0;
+int g_CalcStepValue = 0; // flaga zapala sie tylko po znalezieniu aktualnego kroku trackera gdy wpisano dane recznie
 extern int g_ADCTest;
 
 // zmienna laczaca wartosc z oznaczeniem kierunku (N i S, E i W)
@@ -975,7 +976,7 @@ void TrackerStep() // OK
 		}
 	}
 
-	if (g_TrackerTEST == OFF) // trzeba obliczyc ktory krok trackera jest wg czasu
+	if (g_TrackerTEST == OFF && g_Tracker_Step_Count) // trzeba obliczyc ktory krok trackera jest wg czasu
 		TrackerStepCountValue();
 }
 
@@ -1002,36 +1003,16 @@ void TrackerStepCountValue() // Teoretycznie ok
 				tracker_step_count = i--;
 				step_found = OFF;
 			}
+		}
 
-			else
+		else // if (time >= g_TrackerTimeStepsTable [i])
+		{
+			if ( ((time - g_TrackerTimeStepsTable [i]) < TRACKER_STEP_INTERVAL) || (time == g_TrackerTimeStepsTable [i]) )
 			{
 				tracker_step_count = i;
 				step_found = OFF;
 			}
 		}
-
-
-		else if (time > g_TrackerTimeStepsTable [i])
-		{
-			if ((time - g_TrackerTimeStepsTable [i]) < TRACKER_STEP_INTERVAL)
-			{
-				tracker_step_count = i;
-				step_found = OFF;
-			}
-			else
-			{
-				tracker_step_count = i++;
-				step_found = OFF;
-			}
-		}
-
-
-		else if (time > g_TrackerTimeStepsTable [i])
-		{
-			tracker_step_count = i;
-			step_found = OFF;
-		}
-
 
 		if (i == g_Tracker_Step_Value || i == TRACKER_MAX_TIME_STEPS) // gdy nie znaleziono kroku w tablicy nastepuje zerowanie kroku trackera
 			{
@@ -1044,6 +1025,8 @@ void TrackerStepCountValue() // Teoretycznie ok
 
 	g_Tracker_Step_Count = tracker_step_count;
 
+	if (g_Tracker_Step_Count != 0)
+		g_CalcStepValue = ON;
 }
 
 
@@ -1073,16 +1056,17 @@ void TrackerStepCount() //
 	//time = g_Time_s;
 
 
-	if (time == g_TrackerTimeStepsTable [tracker_step_count])// || tracker_step_count <= g_Tracker_Step_Value)
+	if ( (time == g_TrackerTimeStepsTable [tracker_step_count]) || g_CalcStepValue == ON)// || tracker_step_count <= g_Tracker_Step_Value)
 	{
 		SunPosition(); // obliczenia pozycji Slonca
 
-		if (Sun_H_previous_value != g_Sun_H && Sun_V_previous_value != g_Sun_V)
+		if ( ((Sun_H_previous_value != g_Sun_H) && ( Sun_V_previous_value != g_Sun_V)) || g_CalcStepValue == ON )
 			MoveServos();
 		else if (Sun_H_previous_value > g_Sun_H) // niekoniecznie potrzebne
 			TrackerError();
 
-		//tracker_step_count++;
+		if (g_CalcStepValue == ON)
+			g_CalcStepValue = OFF;
 
 		if (g_TrackerTEST == ON)
 			g_tracker_test_step_count++; // = tracker_step_count;
